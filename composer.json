@@ -1,0 +1,34 @@
+{
+    "name": "ecfectus/collection",
+    "description": "A super array on steroids, extending dotable and inspired by Laravel Collection.",
+    "license": "MIT",
+    "homepage": "https://github.com/ecfectus/collection",
+    "authors": [
+        {
+            "name": "leemason",
+            "email": "contact@nohalfpixels.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0",
+        "ecfectus/dotable": "dev-master"
+    },
+    "require-dev": {
+        "phpunit/phpunit" : "^5.5.0",
+        "phpdocumentor/phpdocumentor": "2.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ecfectus\\Collection\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ecfectus\\Collection\\Test\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "docs": "vendor/bin/phpdoc"
+    }
+}

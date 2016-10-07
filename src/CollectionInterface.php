@@ -12,7 +12,7 @@ use Ecfectus\Dotable\DotableInterface;
 
 interface CollectionInterface extends DotableInterface
 {
-    public function set(string $path = '', $value, $unset = false) : DotableInterface;
+    /*public function set(string $path = '', $value, $unset = false) : DotableInterface;
 
     public function get(string $path = '', $default = null);
 
@@ -26,5 +26,5 @@ interface CollectionInterface extends DotableInterface
 
     public function merge(string $path = '', array $value = []) : DotableInterface;
 
-    public function toArray() : array;
+    public function toArray() : array;*/
 }

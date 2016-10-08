@@ -999,8 +999,8 @@ class CollectionTest extends TestCase
     public function testPullRemovesItemFromCollection()
     {
         $c = new Collection(['foo', 'bar']);
-        $c->pull();
-        $this->assertEquals(['bar'], $c->toArray());
+        $c->pull(0);
+        $this->assertEquals(['bar'], $c->values()->toArray());
     }
 
     public function testPullReturnsDefault()
@@ -1083,10 +1083,6 @@ class CollectionTest extends TestCase
     {
         $c = new Collection(['one', 'two', 'three', 'four']);
         $this->assertEquals(['zero', 'one', 'two', 'three', 'four'], $c->prepend(null, 'zero')->toArray());
-
-        $c = new Collection(['one' => 1, 'two' => 2]);
-        $c->prepend(null, ['zero' => 0]);
-        $this->assertEquals(['zero' => 0, 'one' => 1, 'two' => 2], $c->prepend(null, ['zero' => 0])->toArray());
     }
 
     public function testZip()

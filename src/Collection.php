@@ -58,7 +58,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
             return;
         }
         $values = isset($key) ? $this->pluck($key) : $this;
-        $values->sort()->values();
+        $values = $values->sort()->values();
         $middle = (int) ($count / 2);
         if ($count % 2) {
             return $values->get($middle);

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1475886319">
-  <project timestamp="1475886319">
+<coverage generated="1475927769">
+  <project timestamp="1475927769">
     <package name="Ecfectus\Collection">
       <file name="/Users/leemason/ecfectus/collection/src/Collection.php">
         <class name="Collection" namespace="Ecfectus\Collection" fullPackage="Ecfectus" package="Ecfectus">
@@ -331,8 +331,8 @@
         <line num="1005" type="stmt" count="2"/>
         <line num="1014" type="method" name="uniqueStrict" visibility="public" complexity="1" crap="1" count="1"/>
         <line num="1016" type="stmt" count="1"/>
-        <line num="1024" type="method" name="values" visibility="public" complexity="1" crap="1" count="22"/>
-        <line num="1026" type="stmt" count="22"/>
+        <line num="1024" type="method" name="values" visibility="public" complexity="1" crap="1" count="23"/>
+        <line num="1026" type="stmt" count="23"/>
         <line num="1035" type="method" name="valueRetriever" visibility="protected" complexity="2" crap="2" count="18"/>
         <line num="1037" type="stmt" count="18"/>
         <line num="1038" type="stmt" count="12"/>

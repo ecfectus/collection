@@ -18,7 +18,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
 
     public function __construct(array $items = [])
     {
-        $this->set('', $items);
+        $this->set(null, $items);
     }
 
     /**
@@ -57,8 +57,8 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         if ($count == 0) {
             return;
         }
-        $values = with(isset($key) ? $this->pluck($key) : $this)
-            ->sort()->values();
+        $values = isset($key) ? $this->pluck($key) : $this;
+        $values->sort()->values();
         $middle = (int) ($count / 2);
         if ($count % 2) {
             return $values->get($middle);
@@ -89,7 +89,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         $highestValue = $sorted->last();
         return $sorted->filter(function ($value) use ($highestValue) {
             return $value == $highestValue;
-        })->sort()->keys()->all();
+        })->sort()->keys()->get();
     }
 
     /**
@@ -100,10 +100,10 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     public function collapse() : Collection
     {
         $results = [];
-        $array = $this->toArray();
+        $array = $this->get();
         foreach ($array as $values) {
             if ($values instanceof Collection) {
-                $values = $values->toArray();
+                $values = $values->get();
             } elseif (! is_array($values)) {
                 continue;
             }
@@ -119,7 +119,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      * @param  mixed  $value
      * @return bool
      */
-    public function contains(string $key = '', $value = null) : bool
+    public function contains($key = '', $value = null) : bool
     {
         if (func_num_args() == 2) {
             return $this->contains(function ($item) use ($key, $value) {
@@ -133,7 +133,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         if ($this->useAsCallable($key)) {
             return ! is_null($this->first($key));
         }
-        return in_array($key, $this->toArray());
+        return in_array($key, $this->get());
     }
 
     /**
@@ -143,7 +143,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      * @param  mixed  $value
      * @return bool
      */
-    public function containsStrict(string $key = '', $value = null) : bool
+    public function containsStrict($key = '', $value = null) : bool
     {
         if (func_num_args() == 2) {
             return $this->contains(function ($item) use ($key, $value) {
@@ -157,7 +157,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         if ($this->useAsCallable($key)) {
             return ! is_null($this->first($key));
         }
-        return in_array($key, $this->toArray(), true);
+        return in_array($key, $this->get(), true);
     }
 
     /**
@@ -168,7 +168,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function diff($items) : Collection
     {
-        return new static(array_diff($this->toArray(), $this->getArrayableItems($items)));
+        return new static(array_diff($this->get(), $this->getArrayableItems($items)));
     }
 
     /**
@@ -179,7 +179,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function diffKeys($items) : Collection
     {
-        return new static(array_diff_key($this->toArray(), $this->getArrayableItems($items)));
+        return new static(array_diff_key($this->get(), $this->getArrayableItems($items)));
     }
 
     /**
@@ -190,7 +190,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function each(callable $callback) : Collection
     {
-        foreach ($this->toArray() as $key => $item) {
+        foreach ($this->get() as $key => $item) {
             if ($callback($item, $key) === false) {
                 break;
             }
@@ -209,7 +209,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     {
         $new = [];
         $position = 0;
-        foreach ($this->toArray() as $item) {
+        foreach ($this->get() as $item) {
             if ($position % $step === $offset) {
                 $new[] = $item;
             }
@@ -226,7 +226,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function except(array $keys = []) : Collection
     {
-        $collection = new static($this->toArray());
+        $collection = new static($this->get());
         foreach($keys as $key){
             $collection->forget($key);
         }
@@ -242,9 +242,9 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     public function filter(callable $callback = null) : Collection
     {
         if ($callback) {
-            return new static(array_filter($this->toArray(), $callback, ARRAY_FILTER_USE_BOTH));
+            return new static(array_filter($this->get(), $callback, ARRAY_FILTER_USE_BOTH));
         }
-        return new static(array_filter($this->toArray()));
+        return new static(array_filter($this->get()));
     }
 
     /**
@@ -341,7 +341,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function first(callable $callback = null, $default = null)
     {
-        $array = $this->toArray();
+        $array = $this->get();
         if (is_null($callback)) {
             if (empty($array)) {
                 return $default;
@@ -366,14 +366,14 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function flatten(int $depth = PHP_INT_MAX) : Collection
     {
-        return new static(array_reduce($this->toArray(), function ($result, $item) use ($depth) {
-            $item = $item instanceof Collection ? $item->toArray() : $item;
+        return new static(array_reduce($this->get(), function ($result, $item) use ($depth) {
+            $item = $item instanceof Collection ? $item->get() : $item;
             if (! is_array($item)) {
                 return array_merge($result, [$item]);
             } elseif ($depth === 1) {
                 return array_merge($result, array_values($item));
             } else {
-                return array_merge($result, (new static($item))->flatten($depth - 1)->toArray());
+                return array_merge($result, (new static($item))->flatten($depth - 1)->get());
             }
         }, []));
     }
@@ -385,7 +385,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function flip()
     {
-        return new static(array_flip($this->toArray()));
+        return new static(array_flip($this->get()));
     }
 
     /**
@@ -399,7 +399,8 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     {
         $groupBy = $this->valueRetriever($groupBy);
         $results = [];
-        foreach ($this->toArray() as $key => $value) {
+        $array = $this->get();
+        foreach ($array as $key => $value) {
             $groupKeys = $groupBy($value, $key);
             if (! is_array($groupKeys)) {
                 $groupKeys = [$groupKeys];
@@ -408,7 +409,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
                 if (! array_key_exists($groupKey, $results)) {
                     $results[$groupKey] = new static;
                 }
-                $results[$groupKey]->offsetSet($preserveKeys ? $key : null, $value);
+                $results[$groupKey]->offsetSet($preserveKeys ? $key : $results[$groupKey]->count(), $value);
             }
         }
         return new static($results);
@@ -424,7 +425,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     {
         $keyBy = $this->valueRetriever($keyBy);
         $results = [];
-        foreach ($this->toArray() as $key => $item) {
+        foreach ($this->get() as $key => $item) {
             $results[$keyBy($item, $key)] = $item;
         }
         return new static($results);
@@ -441,9 +442,9 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     {
         $first = $this->first();
         if (is_array($first) || is_object($first)) {
-            return implode($glue, $this->pluck($value)->toArray());
+            return implode($glue, $this->pluck($value)->get());
         }
-        return implode($value, $this->toArray());
+        return implode($value, $this->get());
     }
 
     /**
@@ -454,7 +455,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function intersect($items) : Collection
     {
-        return new static(array_intersect($this->toArray(), $this->getArrayableItems($items)));
+        return new static(array_intersect($this->get(), $this->getArrayableItems($items)));
     }
 
     /**
@@ -464,7 +465,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function isEmpty() : bool
     {
-        return empty($this->toArray());
+        return empty($this->get());
     }
 
     /**
@@ -485,7 +486,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function keys() : Collection
     {
-        return new static(array_keys($this->toArray()));
+        return new static(array_keys($this->get()));
     }
 
     /**
@@ -497,7 +498,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function last(callable $callback = null, $default = null)
     {
-        $array = $this->toArray();
+        $array = $this->get();
         if (is_null($callback)) {
             return empty($array) ? $default : end($array);
         }
@@ -512,9 +513,9 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      * @param  string|null  $key
      * @return \Ecfectus\Collection\Collection
      */
-    public function pluck(string $value = '', string $key = null) : Collection
+    public function pluck($value = '', $key = null) : Collection
     {
-        $array = $this->toArray();
+        $array = $this->get();
         $results = [];
 
         //$value = is_string($value) ? explode('.', $value) : $value;
@@ -543,7 +544,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function map(callable $callback) : Collection
     {
-        $array = $this->toArray();
+        $array = $this->get();
         $keys = array_keys($array);
         $items = array_map($callback, $array, $keys);
         return new static(array_combine($keys, $items));
@@ -584,6 +585,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         $callback = $this->valueRetriever($callback);
         return $this->reduce(function ($result, $item) use ($callback) {
             $value = $callback($item);
+            $value = is_array($value) ? $value[0] : $value;
             return is_null($result) || $value > $result ? $value : $result;
         });
     }
@@ -596,7 +598,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function combine($values) : Collection
     {
-        return new static(array_combine($this->toArray(), $this->getArrayableItems($values)));
+        return new static(array_combine($this->get(), $this->getArrayableItems($values)));
     }
 
     /**
@@ -607,7 +609,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function union($items) : Collection
     {
-        return new static($this->toArray() + $this->getArrayableItems($items));
+        return new static($this->get() + $this->getArrayableItems($items));
     }
 
     /**
@@ -621,6 +623,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         $callback = $this->valueRetriever($callback);
         return $this->reduce(function ($result, $item) use ($callback) {
             $value = $callback($item);
+            $value = (is_array($value)) ? $value[0] : $value;
             return is_null($result) || $value < $result ? $value : $result;
         });
     }
@@ -634,9 +637,9 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     public function only(array $keys = []) : Collection
     {
         if (is_null($keys)) {
-            return new static($this->toArray());
+            return new static($this->get());
         }
-        return new static(array_intersect_key($this->toArray(), array_flip((array) $keys)));
+        return new static(array_intersect_key($this->get(), array_flip((array) $keys)));
     }
 
     /**
@@ -669,7 +672,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function pop()
     {
-        $items = $this->toArray();
+        $items = $this->get();
         $item = array_pop($items);
         $this->set('', $items);
         return $item;
@@ -682,7 +685,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      * @param  mixed  $default
      * @return mixed
      */
-    public function pull(string $key = '', $default = null)
+    public function pull($key = null, $default = null)
     {
         $item = $this->get($key);
         $this->forget($key);
@@ -696,7 +699,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      * @param  mixed  $value
      * @return \Ecfectus\Collection\Collection
      */
-    public function put(string $key = '', $value) : Collection
+    public function put($key = null, $value) : Collection
     {
         $this->offsetSet($key, $value);
         return $this;
@@ -715,11 +718,11 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         if ($amount > ($count = $this->count())) {
             throw new \InvalidArgumentException("You requested {$amount} items, but there are only {$count} items in the collection");
         }
-        $keys = array_rand($this->toArray(), $amount);
+        $keys = array_rand($this->get(), $amount);
         if ($amount == 1) {
             return $this->get($keys);
         }
-        return new static(array_intersect_key($this->toArray(), array_flip($keys)));
+        return new static(array_intersect_key($this->get(), array_flip($keys)));
     }
 
     /**
@@ -731,7 +734,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function reduce(callable $callback, $initial = null)
     {
-        return array_reduce($this->toArray(), $callback, $initial);
+        return array_reduce($this->get(), $callback, $initial);
     }
 
     /**
@@ -759,7 +762,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function reverse()
     {
-        return new static(array_reverse($this->toArray(), true));
+        return new static(array_reverse($this->get(), true));
     }
 
     /**
@@ -772,9 +775,9 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     public function search($value, $strict = false)
     {
         if (! $this->useAsCallable($value)) {
-            return array_search($value, $this->toArray(), $strict);
+            return array_search($value, $this->get(), $strict);
         }
-        foreach ($this->toArray() as $key => $item) {
+        foreach ($this->get() as $key => $item) {
             if (call_user_func($value, $item, $key)) {
                 return $key;
             }
@@ -789,7 +792,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function shift()
     {
-        $array = $this->toArray();
+        $array = $this->get();
         $item = array_shift($array);
         $this->set('', $array);
         return $item;
@@ -803,7 +806,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function shuffle($seed = null) : Collection
     {
-        $items = $this->toArray();
+        $items = $this->get();
         if (is_null($seed)) {
             shuffle($items);
         } else {
@@ -824,7 +827,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function slice(int $offset, int $length = null) : Collection
     {
-        return new static(array_slice($this->toArray(), $offset, $length, true));
+        return new static(array_slice($this->get(), $offset, $length, true));
     }
 
     /**
@@ -851,7 +854,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     public function chunk(int $size) : Collection
     {
         $chunks = [];
-        foreach (array_chunk($this->toArray(), $size, true) as $chunk) {
+        foreach (array_chunk($this->get(), $size, true) as $chunk) {
             $chunks[] = new static($chunk);
         }
         return new static($chunks);
@@ -865,7 +868,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function sort(callable $callback = null) : Collection
     {
-        $items = $this->toArray();
+        $items = $this->get();
         $callback
             ? uasort($items, $callback)
             : asort($items);
@@ -882,12 +885,13 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function sortBy($callback, int $options = SORT_REGULAR, bool $descending = false) : Collection
     {
+        $items = $this->get();
         $results = [];
         $callback = $this->valueRetriever($callback);
         // First we will loop through the items and get the comparator from a callback
         // function which we were given. Then, we will sort the returned values and
         // and grab the corresponding values for the sorted keys from this array.
-        foreach ($this->toArray() as $key => $value) {
+        foreach ($items as $key => $value) {
             $results[$key] = $callback($value, $key);
         }
         $descending ? arsort($results, $options)
@@ -895,8 +899,10 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         // Once we have sorted all of the keys in the array, we will loop through them
         // and grab the corresponding model so we can set the underlying items list
         // to the sorted version. Then we'll just return the collection instance.
-        foreach (array_keys($results) as $key) {
-            $results[$key] = $this->get($key);
+        $keys = array_keys($results);
+        $results = [];
+        foreach ($keys as $key) {
+            $results[$key] = $items[$key];
         }
         return new static($results);
     }
@@ -923,11 +929,14 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function splice(int $offset, int $length = null, $replacement = []) : Collection
     {
-        $array = $this->toArray();
+        $array = $this->get();
         if (func_num_args() == 1) {
-            return new static(array_splice($array, $offset));
+            $result = array_splice($array, $offset);
+        }else{
+            $result = array_splice($array, $offset, $length, $replacement);
         }
-        return new static(array_splice($array, $offset, $length, $replacement));
+        $this->set(null, $array);
+        return new static($result);
     }
 
     /**
@@ -939,7 +948,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     public function sum($callback = null)
     {
         if (is_null($callback)) {
-            return array_sum($this->toArray());
+            return array_sum($this->get());
         }
         $callback = $this->valueRetriever($callback);
         return $this->reduce(function ($result, $item) use ($callback) {
@@ -969,7 +978,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function transform(callable $callback) : Collection
     {
-        $this->set('', $this->map($callback)->toArray());
+        $this->set('', $this->map($callback)->get());
         return $this;
     }
 
@@ -984,7 +993,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     public function unique($key = null, bool $strict = false) : Collection
     {
         if (is_null($key)) {
-            return new static(array_unique($this->toArray(), SORT_REGULAR));
+            return new static(array_unique($this->get(), SORT_REGULAR));
         }
         $key = $this->valueRetriever($key);
         $exists = [];
@@ -1014,7 +1023,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function values() : Collection
     {
-        return new static(array_values($this->toArray()));
+        return new static(array_values($this->get()));
     }
 
     /**
@@ -1029,7 +1038,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
             return $value;
         }
         return function ($item) use ($value) {
-            return (new static($item))->get($value);
+            return (new static($this->getArrayableItems($item)))->get($value ?? null);
         };
     }
 
@@ -1049,7 +1058,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
         }, func_get_args());
         $params = array_merge([function () {
             return new static(func_get_args());
-        }, $this->toArray()], $arrayableItems);
+        }, $this->get()], $arrayableItems);
         return new static(call_user_func_array('array_map', $params));
     }
 
@@ -1060,7 +1069,7 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
      */
     public function toBase() : Collection
     {
-        return new self($this->toArray());
+        return new self($this->get());
     }
 
     /**
@@ -1073,8 +1082,8 @@ class Collection implements CollectionInterface, ArrayAccess, IteratorAggregate,
     {
         if (is_array($items)) {
             return $items;
-        } elseif ($items instanceof self) {
-            return $items->toArray();
+        } elseif ($items instanceof static) {
+            return $items->get();
         } elseif (is_object($items) && is_callable([$items, 'toArray'])) {
             return $items->toArray();
         } elseif ($items instanceof JsonSerializable) {

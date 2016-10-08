@@ -6,6 +6,7 @@ use Ecfectus\Collection\Collection;
 use PHPUnit\Framework\TestCase;
 use Mockery as m;
 use ArrayAccess;
+use Traversable;
 
 class CollectionTest extends TestCase
 {
@@ -128,7 +129,7 @@ class CollectionTest extends TestCase
         $c = $this->getMockBuilder(Collection::class)->setMethods(['jsonSerialize'])->getMock();
         $c->expects($this->once())->method('jsonSerialize')->will($this->returnValue(['foo']));
 
-        $this->assertJsonStringEqualsJsonString(json_encode('foo'), (string) $c);
+        $this->assertJsonStringEqualsJsonString(json_encode(['foo']), (string) $c);
     }
 
     public function testForgetSingleKey()
@@ -529,16 +530,17 @@ class CollectionTest extends TestCase
     public function testFlip()
     {
         $data = new Collection(['name' => 'lee', 'framework' => 'ecfectus']);
-        $this->assertEquals(['lee' => 'name', 'laravel' => 'framework'], $data->flip()->toArray());
+        $this->assertEquals(['lee' => 'name', 'ecfectus' => 'framework'], $data->flip()->toArray());
     }
 
     public function testChunk()
     {
         $data = new Collection([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         $data = $data->chunk(3);
-
         $this->assertInstanceOf(Collection::class, $data);
-        $this->assertInstanceOf(Collection::class, $data[0]);
+        foreach($data->get() as $item){
+            $this->assertInstanceOf(Collection::class, $item);
+        }
         $this->assertCount(4, $data);
         $this->assertEquals([1, 2, 3], $data[0]->toArray());
         $this->assertEquals([9 => 10], $data[3]->toArray());
@@ -583,6 +585,7 @@ class CollectionTest extends TestCase
             new TestArrayAccessImplementation(['name' => 'lee', 'email' => 'foo']),
             new TestArrayAccessImplementation(['name' => 'dayle', 'email' => 'bar']),
         ]);
+
 
         $this->assertEquals(['lee' => 'foo', 'dayle' => 'bar'], $data->pluck('email', 'name')->toArray());
         $this->assertEquals(['foo', 'bar'], $data->pluck('email')->toArray());
@@ -635,7 +638,7 @@ class CollectionTest extends TestCase
     }
 
     /**
-     * @expectedException TypeError
+     * @expectedException Error
      */
     public function testConstructMethodFromNull()
     {
@@ -643,7 +646,7 @@ class CollectionTest extends TestCase
     }
 
     /**
-     * @expectedException TypeError
+     * @expectedException Error
      */
     public function testConstructMethodFromCollection()
     {
@@ -659,7 +662,7 @@ class CollectionTest extends TestCase
     }
 
     /**
-     * @expectedException TypeError
+     * @expectedException Error
      */
     public function testConstructMethodFromObject()
     {
@@ -671,8 +674,9 @@ class CollectionTest extends TestCase
     public function testSplice()
     {
         $data = new Collection(['foo', 'baz']);
-        $data->splice(1);
+        $splice = $data->splice(1);
         $this->assertEquals(['foo'], $data->toArray());
+        $this->assertEquals(['baz'], $splice->toArray());
 
         $data = new Collection(['foo', 'baz']);
         $data->splice(1, 0, 'bar');
@@ -995,8 +999,8 @@ class CollectionTest extends TestCase
     public function testPullRemovesItemFromCollection()
     {
         $c = new Collection(['foo', 'bar']);
-        $c->pull(0);
-        $this->assertEquals([1 => 'bar'], $c->toArray());
+        $c->pull();
+        $this->assertEquals(['bar'], $c->toArray());
     }
 
     public function testPullReturnsDefault()
@@ -1078,10 +1082,11 @@ class CollectionTest extends TestCase
     public function testPrepend()
     {
         $c = new Collection(['one', 'two', 'three', 'four']);
-        $this->assertEquals(['zero', 'one', 'two', 'three', 'four'], $c->prepend('zero')->toArray());
+        $this->assertEquals(['zero', 'one', 'two', 'three', 'four'], $c->prepend(null, 'zero')->toArray());
 
         $c = new Collection(['one' => 1, 'two' => 2]);
-        $this->assertEquals(['zero' => 0, 'one' => 1, 'two' => 2], $c->prepend(0, 'zero')->toArray());
+        $c->prepend(null, ['zero' => 0]);
+        $this->assertEquals(['zero' => 0, 'one' => 1, 'two' => 2], $c->prepend(null, ['zero' => 0])->toArray());
     }
 
     public function testZip()
@@ -1152,12 +1157,9 @@ class CollectionTest extends TestCase
     {
         $data = new Collection(['first' => 'Lee', 'last' => 'Mason', 'email' => 'leemason@gmail.com']);
 
-        $this->assertEquals($data->toArray(), $data->only(null)->toArray());
         $this->assertEquals(['first' => 'Lee'], $data->only(['first', 'missing'])->toArray());
-        $this->assertEquals(['first' => 'Lee'], $data->only('first', 'missing')->toArray());
 
         $this->assertEquals(['first' => 'Lee', 'email' => 'leemason@gmail.com'], $data->only(['first', 'email'])->toArray());
-        $this->assertEquals(['first' => 'Lee', 'email' => 'leemason@gmail.com'], $data->only('first', 'email')->toArray());
     }
 
     public function testGettingAvgItemsFromCollection()
@@ -1187,7 +1189,6 @@ class CollectionTest extends TestCase
         ]);
 
         $this->assertSame([
-            ['foo' => 'bar'],
             ['foo' => 'bar'],
             ['foo' => 'bar'],
             'baz',
@@ -1357,16 +1358,12 @@ class CollectionTest extends TestCase
         $this->assertEquals([3, 4, 5, 6], $collection->slice(-6, -2)->values()->toArray());
     }
 
+    /**
+     * @expectedException TypeError
+     */
     public function testCollectonFromTraversable()
     {
         $collection = new Collection(new \ArrayObject([1, 2, 3]));
-        $this->assertEquals([1, 2, 3], $collection->toArray());
-    }
-
-    public function testCollectonFromTraversableWithKeys()
-    {
-        $collection = new Collection(new \ArrayObject(['foo' => 1, 'bar' => 2, 'baz' => 3]));
-        $this->assertEquals(['foo' => 1, 'bar' => 2, 'baz' => 3], $collection->toArray());
     }
 
     public function testSplitCollectionWithADivisableCount()
@@ -1418,7 +1415,7 @@ class CollectionTest extends TestCase
     }
 }
 
-class TestArrayAccessImplementation implements ArrayAccess
+class TestArrayAccessImplementation implements ArrayAccess, \IteratorAggregate
 {
     private $arr;
 
@@ -1446,6 +1443,13 @@ class TestArrayAccessImplementation implements ArrayAccess
     {
         unset($this->arr[$offset]);
     }
+
+    public function getIterator()
+    {
+        return new \ArrayIterator($this->arr);
+    }
+
+
 }
 
 class TestArrayableObject
